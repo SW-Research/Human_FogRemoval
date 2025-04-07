@@ -1,0 +1,43 @@
+name: Build
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Get SonarQube project key
+        id: sonar_project_key
+        shell: bash  # Force Bash
+        run: |
+          PROJECT_KEY=$(cat sonar-project.properties | grep sonar.projectKey | cut -d'=' -f2)
+          echo "project_key=${PROJECT_KEY}" >> $GITHUB_OUTPUT
+
+      - name: Download SonarQube metrics as CSV
+        shell: bash  # Force Bash
+        run: |
+          choco install -y jq
+          PROJECT_KEY=${{ steps.sonar_project_key.outputs.project_key }}
+          curl -s -u "${{ secrets.SONAR_TOKEN }}:" "https://sonarcloud.io/api/measures/component?component=$PROJECT_KEY&metricKeys=bugs,vulnerabilities,code_smells,sqale_rating,duplicated_lines_density,complexity" > metrics.json
+          echo "Metric,Value" > human_fogRemoval_sonar_metrics.csv
+          jq -r '.component.measures[] | [.metric, .value] | @csv' metrics.json >> human_fogRemoval_sonar_metrics.csv
+          cat human_fogRemoval_sonar_metrics.csv
+
+      - name: Upload SonarQube metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: human-fogRemoval-sonar-metrics
+          path: human_fogRemoval_sonar_metrics.csv
