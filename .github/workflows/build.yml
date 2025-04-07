@@ -31,7 +31,7 @@ jobs:
         run: |
           choco install -y jq
           PROJECT_KEY=${{ steps.sonar_project_key.outputs.project_key }}
-          curl -s -u "${{ secrets.SONAR_TOKEN }}:" "https://sonarcloud.io/api/measures/component?component=$PROJECT_KEY&metricKeys=bugs,vulnerabilities,code_smells,sqale_rating,duplicated_lines_density,complexity" > metrics.json
+          curl -s -u "${{ secrets.SONAR_TOKEN }}:" "https://sonarcloud.io/api/measures/component?component=$PROJECT_KEY&metricKeys=bugs,new_bugs,vulnerabilities,new_vulnerabilities,security_hotspots,code_smells,sqale_rating,reliability_rating,security_rating,coverage,line_coverage,branch_coverage,complexity,cognitive_complexity,duplicated_lines_density,ncloc" > metrics.json
           echo "Metric,Value" > human_fogRemoval_sonar_metrics.csv
           jq -r '.component.measures[] | [.metric, .value] | @csv' metrics.json >> human_fogRemoval_sonar_metrics.csv
           cat human_fogRemoval_sonar_metrics.csv
